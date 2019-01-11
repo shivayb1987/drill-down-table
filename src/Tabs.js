@@ -3,7 +3,7 @@ import classnames from "classnames"
 
 class Tabs extends React.Component {
   state = {
-    currentIndex: 1
+    currentIndex: 0
   }
 
   onChange = index => {
