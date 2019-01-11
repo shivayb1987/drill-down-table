@@ -1,42 +1,69 @@
 import React from "react"
-import { makeData } from "./Utils"
+import { makeData, getSegments } from "./Utils"
 import PieChart from "./PieChart"
 import BarChart from "./BarChart"
+import Clients from "./Clients"
 import "./index.css"
 import Table from "./Table"
+import Tabs from "./Tabs"
+import Products from "./ProductsComponent"
+const TABS = ["Daily Balances", "Products", "Clients"]
 
 class App extends React.Component {
+  state = {
+    width: 100
+  }
+
+  getWidth(target) {
+    return target.innerWidth > 968 ? 50: 100
+  }
+
+  handleResize = event => {
+    this.setState({
+      width: this.getWidth(event.target)
+    })
+  }
+
+  componentDidMount() {
+    console.log("mounted")
+    window.addEventListener("resize", this.handleResize)
+  }
+
+  componentWillUnmount() {
+    console.log("unmounted")
+    window.removeEventListener("resize", this.handleResize)
+  }
+
+  render() {
+    return (
+      <div>
+        <Tabs items={TABS}>
+          <DailyBalance width={`${this.state.width}%`} />
+          <Products width={`${this.state.width}%`} />
+          <Clients />
+        </Tabs>
+      </div>
+    )
+  }
+}
+
+class DailyBalance extends React.Component {
   constructor() {
     super()
     this.state = {
       data: [],
       chartData: [],
       barData: [],
-      width: this.getWidth(window),
       pieOpened: false,
       barOpened: false
     }
   }
 
-  getWidth(target) {
-    return target.innerWidth > 780 ? "50%" : "100%"
-  }
-
   componentDidMount() {
-    window.addEventListener("resize", event => {
-      this.setState({
-        width: this.getWidth(event.target)
-      })
-    })
-    const data = makeData()
-
+    const products = getSegments()
     this.setState({
-      data: data
+      data: products
     })
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener("resize")
   }
 
   setData = data => {
@@ -52,27 +79,28 @@ class App extends React.Component {
       barOpened: !state.barOpened
     }))
   }
-
   render() {
-    const { data, chartData, width } = this.state
-    const data2 = chartData.length ? chartData : data
-    const data1 = chartData.length ? data : chartData
+    const { chartData, data } = this.state
     return (
-      <div>
-        <div className="chartsWrapper">
-          {<PieChart width={width} data1={data1} data2={data2} />}
-          {!!this.state.barData.length && (
-            <BarChart width={this.state.width} data={this.state.barData} />
-          )}
-        </div>
+      <div className="DailyBalance-container">
         <Table
           data={this.state.data}
           setPieChartData={this.setData}
           setBarChartData={this.setRM}
         />
+        <div className="chartsWrapper">
+          {!this.state.barData.length && (
+            <PieChart
+              width={this.props.width}
+              data={chartData.length ? chartData : data}
+            />
+          )}
+          {!!this.state.barData.length && (
+            <BarChart stopScroll={window.innerWidth < 600} width={this.props.width} data={this.state.barData} />
+          )}
+        </div>
       </div>
     )
   }
 }
-
 export default App

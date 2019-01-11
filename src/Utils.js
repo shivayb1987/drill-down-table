@@ -1,3 +1,5 @@
+import appData from "./products"
+import ProductUtil from "./ProductUtil"
 const namor = require("namor")
 const range = len => {
   const arr = []
@@ -62,79 +64,99 @@ export function makeData(len = 3) {
   })
 }
 
+const flatten = arr => {
+  return arr.reduce((flattened, el) => {
+    if (el instanceof Array) {
+      flattened.push(...el)
+    } else {
+      flattened.push(el)
+    }
+    return flattened
+  }, [])
+}
+
+export const getSegments = () => {
+  const filterBy = func => {
+    return appData.filter(func)
+  }
+  const Util = new ProductUtil(appData)
+
+  const balances = Util.generateProductsMap("Segment Level 2")
+
+  balances.forEach(segment => {
+    const filtered = filterBy(obj => obj["Segment Level 2"] === segment.name)
+    const Util = new ProductUtil(filtered)
+    const subSegments = Util.generateProductsMap("Segment Level 1")
+    subSegments.forEach(sub => {
+      const filtered = filterBy(obj => obj["Segment Level 1"] === sub.name)
+      const Util = new ProductUtil(filtered)
+      const dates = Util.getDates()
+      sub.headers = generateRMHeaders(dates.sort().reverse())
+      sub.children = Util.generateRMMap("RM", dates)
+    })
+    segment.children = subSegments
+  })
+  return balances
+}
+
+const headerConfig = {
+  width: "4em",
+  headerStyle: {
+    background: "#0083ff",
+    color: "white"
+  }
+}
+export const generateRMHeaders = items => {
+  const headers = items.map(item => {
+    return [
+      {
+        ...headerConfig,
+        Header: item,
+        accessor: item + "-noop"
+      },
+      {
+        ...headerConfig,
+        Header: item,
+        accessor: item + "-op"
+      }
+    ]
+  })
+  return [
+    {
+      ...headerConfig,
+      Header: "RM",
+      accessor: "name"
+    },
+    ...flatten(headers)
+  ]
+}
+
 export const barChartColumns = {
   columns: [
     {
       Header: "Name",
       accessor: "name",
-      width: "4em"
+      ...headerConfig
     },
     {
       Header: "USD",
       accessor: "usd",
-      width: "4em"
+      ...headerConfig
     },
     {
       Header: "SGD",
       accessor: "sgd",
-      width: "4em"
+      ...headerConfig
     },
     {
       Header: "OCY",
       accessor: "ocy",
-      width: "4em"
+      ...headerConfig
     },
     {
       Header: "Total",
       accessor: "total",
-      width: "4em"
-    }
-  ],
-  rmColumns: [
-    {
-      Header: "RM",
-      accessor: "rm",
-      width: "4em"
-    },
-    {
-      Header: "May 10",
-      accessor: "noop1",
-      width: "4em"
-    },
-    {
-      Header: "May 10",
-      accessor: "op1",
-      width: "4em"
-    },
-    {
-      Header: "May 9",
-      accessor: "noop2",
-      width: "4em"
-    },
-    {
-      Header: "May 9",
-      accessor: "op2",
-      width: "4em"
-    },
-    {
-      Header: "May 8",
-      accessor: "noop3",
-      width: "4em"
-    },
-    {
-      Header: "May 8",
-      accessor: "op3",
-      width: "4em"
-    },
-    {
-      Header: "May 7",
-      accessor: "noop4",
-      width: "4em"
-    },
-    {
-      Header: "May 7",
-      accessor: "op4",
-      width: "4em"
+      ...headerConfig
     }
   ]
 }
@@ -142,25 +164,23 @@ export const barChartColumns = {
 export const barChartHelpers = {
   consolidateByKeys: (headers, data) => {
     const keymap = {
-      noop: "nonOperational",
-      op: "operational"
+      noop: "Non-Operational",
+      op: "Operational"
     }
     const map = new Map()
     headers.forEach(({ Header, accessor }) => {
-      const nonOpTotal = data.reduce(
-        (total, entry) => total + entry[accessor],
+      const noopTotal = data.reduce(
+        (acc, obj) => acc - 0 + obj[`${Header}-noop`],
         0
       )
-      if (map.has(Header)) {
-        map.set(Header, {
-          ...map.get(Header),
-          [keymap[accessor.replace(/[0-9]+/, "")]]: nonOpTotal
-        })
-      } else {
-        map.set(Header, {
-          [keymap[accessor.replace(/[0-9]+/, "")]]: nonOpTotal
-        })
-      }
+      const opTotal = data.reduce(
+        (acc, obj) => acc - 0 + obj[`${Header}-op`],
+        0
+      )
+      map.set(Header, {
+        [keymap.noop]: noopTotal,
+        [keymap.op]: opTotal
+      })
     })
     return map
   },
@@ -172,4 +192,20 @@ export const barChartHelpers = {
       }
     })
   }
+}
+
+export const getClients = () => {
+  const ids = new Set()
+  const clients = []
+  appData.forEach(obj => {
+    const id = obj['Customer']
+    if (!ids.has(id)) {
+      ids.add(id)
+      clients.push({
+        id: obj['Customer'],
+        name: obj['Customer Name']
+      })
+    }
+  })
+  return clients
 }

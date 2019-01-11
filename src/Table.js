@@ -1,7 +1,7 @@
 import React from "react"
 import ReactTable from "react-table"
 import "react-table/react-table.css"
-import { barChartHelpers, barChartColumns } from "./Utils"
+import { barChartHelpers, barChartColumns, generateRMHeaders } from "./Utils"
 
 class Table extends React.Component {
   state = {
@@ -10,7 +10,7 @@ class Table extends React.Component {
     barIndices: [],
     currentBarIndex: -1
   }
-  setBarChartData(data, index) {
+  setBarChartData(headers, data, index) {
     const { barIndices, currentBarIndex } = this.state
     if (this.isCurrentRowExpanded(index, currentBarIndex, barIndices)) {
       this.props.setBarChartData([])
@@ -28,7 +28,6 @@ class Table extends React.Component {
           currentBarIndex: index,
           barIndices: [...barIndices, index]
         })
-        const headers = barChartColumns.rmColumns.slice(1)
         const consolidatedMap = barChartHelpers.consolidateByKeys(headers, data)
         const formattedArr = barChartHelpers.formatDataForBarChart(
           consolidatedMap
@@ -64,7 +63,7 @@ class Table extends React.Component {
           currentPieIndex: index,
           pieIndices: [...pieIndices, index]
         })
-        this.props.setPieChartData(data)
+        this.props.setPieChartData(data || [])
       }
     }
     this.resetBarChartData()
@@ -81,34 +80,42 @@ class Table extends React.Component {
     const { data } = this.props
     return (
       <ReactTable
+        style={{ flex: 1 }}
         data={data}
         columns={barChartColumns.columns}
-        defaultPageSize={10}
+        defaultPageSize={5}
         className="-striped -highlight"
         SubComponent={row => {
           return (
             <div style={{ padding: "20px" }}>
-              <br />
               <ReactTable
                 data={row.original.children}
                 columns={barChartColumns.columns}
-                defaultPageSize={3}
-                showPagination={true}
+                defaultPageSize={
+                  row.original.children ? row.original.children.length : 0
+                }
+                showPagination={false}
                 SubComponent={row => {
                   return (
                     <div style={{ padding: "20px" }}>
                       <br />
                       <ReactTable
                         data={row.original.children}
-                        columns={barChartColumns.rmColumns}
-                        defaultPageSize={5}
-                        showPagination={true}
-                        SubComponent={row => {
-                          return (
-                            <div style={{ padding: "20px" }}>
-                              Another Sub Component!
-                            </div>
-                          )
+                        columns={row.original.headers}
+                        defaultPageSize={
+                          row.original.children
+                            ? row.original.children.length
+                            : 0
+                        }
+                        showPagination={false}
+                        getTdProps={() => {
+                          return {
+                            style: {
+                              textAlign: "center",
+                              textOverflow: "initial",
+                              whiteSpace: "initial"
+                            }
+                          }
                         }}
                       />
                     </div>
@@ -116,8 +123,14 @@ class Table extends React.Component {
                 }}
                 getTdProps={(state, rowInfo, column, instance) => {
                   return {
+                    style: {
+                      textAlign: "center",
+                      textOverflow: "initial",
+                      whiteSpace: "initial"
+                    },
                     onClick: (e, handleOriginal) => {
                       this.setBarChartData(
+                        rowInfo.original.headers.slice(1),
                         rowInfo.original.children,
                         rowInfo.index
                       )
@@ -134,6 +147,11 @@ class Table extends React.Component {
         }}
         getTdProps={(state, rowInfo, column, instance) => {
           return {
+            style: {
+              textAlign: "center",
+              textOverflow: "initial",
+              "white-space": "initial"
+            },
             onClick: (e, handleOriginal) => {
               console.log("A Td Element was clicked!")
               console.log("it produced this event:", e)

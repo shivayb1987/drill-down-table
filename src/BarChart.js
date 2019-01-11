@@ -11,22 +11,64 @@ import {
   Legend
 } from "recharts"
 class StackedBarChart extends React.Component {
+  state = {
+    offsetY: 20
+  }
+
+  handleScroll = event => {
+    setTimeout(() => {
+      this.setState({
+        offsetY: window.pageYOffset || document.documentElement.scrollTop
+      })
+    }, 200)
+  }
+
+  componentWillReceiveProps(nextProps) {
+    console.log(nextProps)
+    if (nextProps.stopScroll) {
+      window.removeEventListener("scroll", this.handleScroll)
+      this.setState({
+        offsetY: 20
+      })
+    }
+    if (
+      this.props.stopScroll !== nextProps.stopScroll &&
+      nextProps.stopScroll === false
+    ) {
+      window.addEventListener("scroll", this.handleScroll)
+    }
+  }
+
+  componentDidMount() {
+    !this.props.stopScroll &&
+      window.addEventListener("scroll", this.handleScroll)
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this.handleScroll)
+  }
+
   render() {
     return (
-      <ResponsiveContainer width={this.props.width} height={400}>
-        <BarChart
-          data={this.props.data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="nonOperational" stackId="a" fill="#8884d8" />
-          <Bar dataKey="operational" stackId="a" fill="#82ca9d" />
-        </BarChart>
-      </ResponsiveContainer>
+      <div
+        style={{
+          marginTop: this.state.offsetY,
+          width: "100%",
+          transition: "margin-top 500ms ease-in"
+        }}
+      >
+        <ResponsiveContainer width={"80%"} height={400}>
+          <BarChart data={this.props.data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="Non-Operational" stackId="a" fill="#0000FF" />
+            <Bar dataKey="Operational" stackId="a" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     )
   }
 }
